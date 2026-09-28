@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometric Eye — Creative Coding</title>
+  <style>
+    :root {
+      --bg-color: #08090d;
+      --panel-bg: rgba(18, 20, 29, 0.75);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --text-main: #f0f2f8;
+      --text-muted: #8e95aa;
+      --accent-cyan: #00f0ff;
+      --accent-gold: #ffb703;
+      --accent-magenta: #ff007f;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient background glow */
+    .glow-backdrop {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.08) 0%, rgba(255, 0, 127, 0.04) 50%, transparent 70%);
+      pointer-events: none;
+      filter: blur(60px);
+      z-index: 0;
+    }
+
+    /* Main Container */
+    .stage {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: linear-gradient(120deg, #ffffff 20%, #a5b4fc 60%, #00f0ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* Canvas Frame */
+    .canvas-wrapper {
+      position: relative;
+      border-radius: 20px;
+      padding: 3px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(0,240,255,0.2), rgba(255,0,127,0.1));
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 240, 255, 0.15);
+    }
+
+    canvas {
+      display: block;
+      border-radius: 17px;
+      background: #090a10;
+      cursor: crosshair;
+    }
+
+    /* Floating / Docked Controls */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border-color);
+      padding: 12px 20px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      max-width: 620px;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .control-group label {
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 80px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--accent-cyan);
+      transition: transform 0.1s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    select, button {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    select:hover, button:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .hint {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+
+    /* Top Navigation bar */
+    .top-nav {
+      position: absolute;
+      top: 14px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+      border-color: var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-links a.active {
+      color: var(--accent-cyan);
+      border-color: rgba(0, 240, 255, 0.3);
+      background: rgba(0, 240, 255, 0.1);
+    }
+
+    .badge {
+      font-family: monospace;
+      font-size: 0.72rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: #00f0ff;
+      letter-spacing: 0.08em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-nav">
+    <div class="nav-links">
+      <a href="../index.html" title="Return to Gallery Exhibition Hall">🏛️ Gallery Hub</a>
+      <a href="index.html" class="active">01 // Geometric Eye</a>
+      <a href="../02-terminal-heritage/index.html">02 // Cyber Heritage &rarr;</a>
+    </div>
+    <span class="badge" title="Press Left/Right arrows to flip pieces">KEY: &larr; / &rarr;</span>
+  </div>
+
+  <div class="glow-backdrop"></div>
+
+  <div class="stage">
+    <header>
+      <h1>Geometric Eye</h1>
+      <p class="subtitle">Sacred Geometry &bull; Generative JavaScript Canvas</p>
+    </header>
+
+    <div class="canvas-wrapper">
+      <canvas id="eyeCanvas" width="600" height="500"></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="raySlider">Rays</label>
+        <input type="range" id="raySlider" min="8" max="72" step="4" value="36">
+        <span id="rayVal">36</span>
+      </div>
+
+      <div class="control-group">
+        <label for="dilationSlider">Dilation</label>
+        <input type="range" id="dilationSlider" min="0.4" max="1.6" step="0.05" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <label for="speedSlider">Speed</label>
+        <input type="range" id="speedSlider" min="0.2" max="3" step="0.2" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <label for="paletteSelect">Palette</label>
+        <select id="paletteSelect">
+          <option value="cyber">Cyber Cyan & Gold</option>
+          <option value="amethyst">Mystic Violet</option>
+          <option value="emerald">Emerald Matrix</option>
+          <option value="solar">Solar Flare</option>
+          <option value="mono">Silver Minimal</option>
+        </select>
+      </div>
+
+      <button id="toggleGaze">Gaze Tracking: ON</button>
+      <button id="randomizeBtn">Randomize</button>
+    </div>
+
+    <p class="hint">Move your cursor over the canvas to direct its gaze &bull; Click to blink</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('eyeCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Display DPI scaling for crisp retina rendering
+    const dpr = window.devicePixelRatio || 1;
+    const logicalWidth = 600;
+    const logicalHeight = 500;
+    canvas.width = logicalWidth * dpr;
+    canvas.height = logicalHeight * dpr;
+    canvas.style.width = logicalWidth + 'px';
+    canvas.style.height = logicalHeight + 'px';
+    ctx.scale(dpr, dpr);
+
+    // State
+    const state = {
+      time: 0,
+      rays: 36,
+      dilation: 1.0,
+      speed: 1.0,
+      palette: 'cyber',
+      gazeTracking: true,
+      cursor: { x: logicalWidth / 2, y: logicalHeight / 2 },
+      targetLook: { x: 0, y: 0 },
+      currentLook: { x: 0, y: 0 },
+      blinkProgress: 0, // 0 = fully open, 1 = shut
+      isBlinking: false
+    };
+
+    // Color Palettes
+    const palettes = {
+      cyber: {
+        sclera: '#00f0ff',
+        irisOuter: '#3a86ff',
+        irisInner: '#ff007f',
+        pupil: '#ffb703',
+        sacred: '#00f0ff',
+        glow: 'rgba(0, 240, 255, 0.45)',
+        gold: '#ffd166'
+      },
+      amethyst: {
+        sclera: '#e0aaff',
+        irisOuter: '#7b2cbf',
+        irisInner: '#c77dff',
+        pupil: '#ff9e00',
+        sacred: '#9d4edd',
+        glow: 'rgba(157, 78, 221, 0.45)',
+        gold: '#f72585'
+      },
+      emerald: {
+        sclera: '#52b788',
+        irisOuter: '#1b4332',
+        irisInner: '#74c69d',
+        pupil: '#d8f3dc',
+        sacred: '#2d6a4f',
+        glow: 'rgba(82, 183, 136, 0.45)',
+        gold: '#95d5b2'
+      },
+      solar: {
+        sclera: '#ffaa00',
+        irisOuter: '#d00000',
+        irisInner: '#ff4800',
+        pupil: '#ffba08',
+        sacred: '#e85d04',
+        glow: 'rgba(255, 100, 0, 0.45)',
+        gold: '#ffee32'
+      },
+      mono: {
+        sclera: '#ffffff',
+        irisOuter: '#888888',
+        irisInner: '#cccccc',
+        pupil: '#ffffff',
+        sacred: '#ffffff',
+        glow: 'rgba(255, 255, 255, 0.35)',
+        gold: '#aaaaaa'
+      }
+    };
+
+    // Event Listeners for UI Controls
+    document.getElementById('raySlider').addEventListener('input', (e) => {
+      state.rays = parseInt(e.target.value);
+      document.getElementById('rayVal').textContent = state.rays;
+    });
+
+    document.getElementById('dilationSlider').addEventListener('input', (e) => {
+      state.dilation = parseFloat(e.target.value);
+    });
+
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+      state.speed = parseFloat(e.target.value);
+    });
+
+    document.getElementById('paletteSelect').addEventListener('change', (e) => {
+      state.palette = e.target.value;
+    });
+
+    const toggleGazeBtn = document.getElementById('toggleGaze');
+    toggleGazeBtn.addEventListener('click', () => {
+      state.gazeTracking = !state.gazeTracking;
+      toggleGazeBtn.textContent = `Gaze Tracking: ${state.gazeTracking ? 'ON' : 'OFF'}`;
+      if (!state.gazeTracking) {
+        state.targetLook = { x: 0, y: 0 };
+      }
+    });
+
+    document.getElementById('randomizeBtn').addEventListener('click', () => {
+      const keys = Object.keys(palettes);
+      state.palette = keys[Math.floor(Math.random() * keys.length)];
+      document.getElementById('paletteSelect').value = state.palette;
+      state.rays = [16, 24, 32, 40, 48, 64][Math.floor(Math.random() * 6)];
+      document.getElementById('raySlider').value = state.rays;
+      document.getElementById('rayVal').textContent = state.rays;
+      triggerBlink();
+    });
+
+    // Mouse Tracking
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      state.cursor.x = x;
+      state.cursor.y = y;
+
+      if (state.gazeTracking) {
+        const cx = logicalWidth / 2;
+        const cy = logicalHeight / 2;
+        // Limit look displacement
+        const maxOffset = 36;
+        const dx = (x - cx) / (logicalWidth / 2);
+        const dy = (y - cy) / (logicalHeight / 2);
+        state.targetLook.x = Math.max(-1, Math.min(1, dx)) * maxOffset;
+        state.targetLook.y = Math.max(-1, Math.min(1, dy)) * (maxOffset * 0.7);
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      if (state.gazeTracking) {
+        state.targetLook = { x: 0, y: 0 };
+      }
+    });
+
+    function triggerBlink() {
+      if (state.isBlinking) return;
+      state.isBlinking = true;
+      let start = null;
+      const blinkDuration = 240; // ms
+
+      function step(timestamp) {
+        if (!start) start = timestamp;
+        const elapsed = timestamp - start;
+        const progress = Math.min(elapsed / blinkDuration, 1);
+
+        // Sine wave for smooth close and snap open
+        state.blinkProgress = Math.sin(progress * Math.PI);
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          state.blinkProgress = 0;
+          state.isBlinking = false;
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    canvas.addEventListener('click', triggerBlink);
+
+    // Periodic organic blink
+    setInterval(() => {
+      if (Math.random() < 0.35 && !state.isBlinking) {
+        triggerBlink();
+      }
+    }, 4500);
+
+    /* ----------------------------------------------------
+       GEOMETRIC DRAWING UTILITIES
+    ---------------------------------------------------- */
+
+    // Draw regular polygon
+    function drawPolygon(cx, cy, radius, sides, angleOffset = 0, strokeColor = null, fillColor = null) {
+      ctx.beginPath();
+      for (let i = 0; i <= sides; i++) {
+        const theta = angleOffset + (i * 2 * Math.PI) / sides;
+        const x = cx + radius * Math.cos(theta);
+        const y = cy + radius * Math.sin(theta);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      if (fillColor) {
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+      }
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.stroke();
+      }
+    }
+
+    // Sacred Geometry: Vesica Piscis (the archetypal geometric eye contour)
+    function createEyeContourPath(cx, cy, width, height, blinkAmount = 0) {
+      const h = height * (1 - blinkAmount * 0.98);
+      ctx.beginPath();
+      // Left vertex
+      ctx.moveTo(cx - width, cy);
+      // Top arch (Cubic Bezier curve for elegant tension)
+      ctx.bezierCurveTo(
+        cx - width * 0.55, cy - h * 1.05,
+        cx + width * 0.55, cy - h * 1.05,
+        cx + width, cy
+      );
+      // Bottom arch
+      ctx.bezierCurveTo(
+        cx + width * 0.55, cy + h * 1.05,
+        cx - width * 0.55, cy + h * 1.05,
+        cx - width, cy
+      );
+      ctx.closePath();
+    }
+
+    /* ----------------------------------------------------
+       MAIN RENDER LOOP
+    ---------------------------------------------------- */
+    function render() {
+      state.time += 0.016 * state.speed;
+
+      // Smooth gaze easing (Lerp)
+      state.currentLook.x += (state.targetLook.x - state.currentLook.x) * 0.08;
+      state.currentLook.y += (state.targetLook.y - state.currentLook.y) * 0.08;
+
+      const p = palettes[state.palette];
+      const cx = logicalWidth / 2;
+      const cy = logicalHeight / 2;
+
+      // Clear Canvas
+      ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+
+      // Save base state
+      ctx.save();
+
+      /* 1. BACKGROUND SACRED GRID & AURA */
+      const eyeW = 220;
+      const eyeH = 110;
+
+      // Concentric background geometry rings
+      ctx.lineWidth = 1;
+      for (let r = 80; r <= 260; r += 45) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.stroke();
+      }
+
+      // Outer Radiating Solar/Sacred Rays
+      const outerRayCount = state.rays;
+      ctx.save();
+      ctx.translate(cx, cy);
+      for (let i = 0; i < outerRayCount; i++) {
+        const angle = (i * Math.PI * 2) / outerRayCount + state.time * 0.1;
+        const lengthMod = Math.sin(angle * 4 + state.time * 2) * 15;
+        const innerR = 140;
+        const outerR = 190 + lengthMod;
+        
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(angle) * innerR, Math.sin(angle) * innerR);
+        ctx.lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR);
+        ctx.strokeStyle = (i % 2 === 0) ? 'rgba(255, 255, 255, 0.18)' : p.glow;
+        ctx.lineWidth = (i % 4 === 0) ? 1.5 : 0.8;
+        ctx.stroke();
+
+        // Geometric diamond tick at ray tips
+        if (i % 2 === 0) {
+          const tx = Math.cos(angle) * (outerR + 7);
+          const ty = Math.sin(angle) * (outerR + 7);
+          ctx.beginPath();
+          ctx.arc(tx, ty, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = p.gold;
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      /* 2. EYE OUTLINE / SACRED VESICA PISCIS (CLIPPED INTERIOR) */
+      // Glowing outer rim
+      ctx.save();
+      createEyeContourPath(cx, cy, eyeW + 6, eyeH + 6, state.blinkProgress);
+      ctx.strokeStyle = p.glow;
+      ctx.lineWidth = 6;
+      ctx.shadowColor = p.glow;
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      createEyeContourPath(cx, cy, eyeW, eyeH, state.blinkProgress);
+      ctx.strokeStyle = p.sclera;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      // Clip subsequent drawings strictly inside the eye
+      ctx.clip();
+
+      // Inside sclera dark background with radial depth
+      const scleraGrad = ctx.createRadialGradient(
+        cx + state.currentLook.x * 0.5,
+        cy + state.currentLook.y * 0.5,
+        20,
+        cx,
+        cy,
+        eyeW
+      );
+      scleraGrad.addColorStop(0, '#101422');
+      scleraGrad.addColorStop(0.7, '#07080f');
+      scleraGrad.addColorStop(1, '#020306');
+      ctx.fillStyle = scleraGrad;
+      ctx.fill();
+
+      // Sclera geometric lattice chords
+      ctx.lineWidth = 0.6;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      for (let x = -eyeW; x <= eyeW; x += 28) {
+        ctx.beginPath();
+        ctx.moveTo(cx + x, cy - eyeH);
+        ctx.lineTo(cx - x, cy + eyeH);
+        ctx.stroke();
+      }
+
+      /* 3. IRIS & SACRED MANDALA */
+      const irisX = cx + state.currentLook.x;
+      const irisY = cy + state.currentLook.y;
+      const irisRadius = 78;
+
+      // Iris outer perimeter & glow
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(irisX, irisY, irisRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = p.irisOuter;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = p.glow;
+      ctx.shadowBlur = 15;
+      ctx.stroke();
+      ctx.restore();
+
+      // Rotating Star of David / Overlapping Hexagram / Decagram geometry
+      ctx.save();
+      ctx.translate(irisX, irisY);
+
+      // Rotating geometric star polyhedra inside iris
+      ctx.rotate(state.time * 0.3);
+      for (let step = 0; step < 3; step++) {
+        ctx.save();
+        ctx.rotate((step * Math.PI) / 3);
+        drawPolygon(0, 0, irisRadius * 0.94, 6, 0, 'rgba(255,255,255,0.18)', null);
+        ctx.restore();
+      }
+
+      // Sacred Flower of Life / Overlapping circular arcs in iris
+      const petals = 12;
+      ctx.lineWidth = 1;
+      for (let i = 0; i < petals; i++) {
+        const petalAngle = (i * 2 * Math.PI) / petals + state.time * -0.2;
+        const px = Math.cos(petalAngle) * (irisRadius * 0.48);
+        const py = Math.sin(petalAngle) * (irisRadius * 0.48);
+        ctx.beginPath();
+        ctx.arc(px, py, irisRadius * 0.48, 0, Math.PI * 2);
+        ctx.strokeStyle = (i % 2 === 0) ? p.irisInner : 'rgba(255, 255, 255, 0.12)';
+        ctx.stroke();
+      }
+
+      // Dynamic Iris Rays (Radial Fibonacci chords)
+      const irisRayCount = Math.floor(state.rays * 1.5);
+      for (let i = 0; i < irisRayCount; i++) {
+        const theta = (i * 2 * Math.PI) / irisRayCount;
+        const rIn = 26 * state.dilation;
+        const rOut = irisRadius * 0.96;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(theta) * rIn, Math.sin(theta) * rIn);
+        ctx.lineTo(Math.cos(theta) * rOut, Math.sin(theta) * rOut);
+        ctx.strokeStyle = (i % 3 === 0) ? p.gold : 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      }
+
+      /* 4. PUPIL & CENTRAL BLACK HOLE */
+      const pupilBaseR = 24 * state.dilation;
+      // Pulse pupil slightly to evoke living consciousness
+      const pulse = Math.sin(state.time * 3) * 1.5;
+      const pupilR = Math.max(10, pupilBaseR + pulse);
+
+      // Deep void fill
+      ctx.beginPath();
+      ctx.arc(0, 0, pupilR, 0, Math.PI * 2);
+      ctx.fillStyle = '#020307';
+      ctx.fill();
+
+      // Sharp geometric pupil ring
+      ctx.strokeStyle = p.pupil;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = p.pupil;
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+
+      // Golden ratio concentric inner node
+      ctx.beginPath();
+      ctx.arc(0, 0, pupilR * 0.4, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Central core singularity
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      // Specular Geometric Glint / Reflection
+      ctx.beginPath();
+      ctx.arc(-pupilR * 0.4, -pupilR * 0.4, pupilR * 0.22, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 6;
+      ctx.fill();
+
+      ctx.restore(); // Exit iris transform
+      ctx.restore(); // Exit eye clipping
+
+      /* 5. GEOMETRIC EYELID CHORDS & FRAME ACCENTS */
+      // Triangular crown / Third Eye apex indicator above the eye
+      ctx.save();
+      const apexDist = 135;
+      ctx.beginPath();
+      ctx.moveTo(cx - 30, cy - apexDist);
+      ctx.lineTo(cx + 30, cy - apexDist);
+      ctx.lineTo(cx, cy - apexDist - 35);
+      ctx.closePath();
+      ctx.strokeStyle = p.gold;
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+
+      // Central dot inside upper triangle
+      ctx.beginPath();
+      ctx.arc(cx, cy - apexDist - 12, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = p.gold;
+      ctx.fill();
+
+      // Lower geometric inverted triangle
+      ctx.beginPath();
+      ctx.moveTo(cx - 24, cy + apexDist);
+      ctx.lineTo(cx + 24, cy + apexDist);
+      ctx.lineTo(cx, cy + apexDist + 28);
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Eyelash-like geometric tangent lines at the corners
+      ctx.strokeStyle = p.sclera;
+      ctx.lineWidth = 1.2;
+      [-1, 1].forEach(dir => {
+        const cornerX = cx + dir * eyeW;
+        ctx.beginPath();
+        ctx.moveTo(cornerX, cy);
+        ctx.lineTo(cornerX + dir * 45, cy);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cornerX + dir * 50, cy, 3, 0, Math.PI * 2);
+        ctx.fillStyle = p.sclera;
+        ctx.fill();
+      });
+
+      ctx.restore();
+
+      requestAnimationFrame(render);
+    }
+
+    // Launch Loop
+    render();
+
+    // Gallery Keyboard Navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        window.location.href = '../02-terminal-heritage/index.html';
+      } else if (e.key === 'Escape' || e.key === 'g' || e.key === 'G') {
+        window.location.href = '../index.html';
+      }
+    });
+  </script>
+</body>
+</html>
