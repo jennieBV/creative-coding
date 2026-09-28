@@ -239,7 +239,7 @@
 
   <div class="top-nav">
     <a href="../index.html" class="nav-back" title="Back">&larr;</a>
-    <button id="btnCopyCode" class="copy-btn">Copy Code</button>
+    <button id="btnCopy" class="copy-btn">Copy</button>
   </div>
 
   <div class="glow-backdrop"></div>
@@ -247,38 +247,6 @@
   <div class="stage">
     <div class="canvas-wrapper">
       <canvas id="eyeCanvas" width="600" height="500"></canvas>
-    </div>
-
-    <div class="controls">
-      <div class="control-group">
-        <label for="raySlider">Rays</label>
-        <input type="range" id="raySlider" min="8" max="72" step="4" value="36">
-        <span id="rayVal">36</span>
-      </div>
-
-      <div class="control-group">
-        <label for="dilationSlider">Dilation</label>
-        <input type="range" id="dilationSlider" min="0.4" max="1.6" step="0.05" value="1.0">
-      </div>
-
-      <div class="control-group">
-        <label for="speedSlider">Speed</label>
-        <input type="range" id="speedSlider" min="0.2" max="3" step="0.2" value="1.0">
-      </div>
-
-      <div class="control-group">
-        <label for="paletteSelect">Palette</label>
-        <select id="paletteSelect">
-          <option value="cyber">Cyber Cyan & Gold</option>
-          <option value="amethyst">Mystic Violet</option>
-          <option value="emerald">Emerald Matrix</option>
-          <option value="solar">Solar Flare</option>
-          <option value="mono">Silver Minimal</option>
-        </select>
-      </div>
-
-      <button id="toggleGaze">Gaze: ON</button>
-      <button id="randomizeBtn">Randomize</button>
     </div>
   </div>
 
@@ -360,42 +328,7 @@
       }
     };
 
-    // Event Listeners for UI Controls
-    document.getElementById('raySlider').addEventListener('input', (e) => {
-      state.rays = parseInt(e.target.value);
-      document.getElementById('rayVal').textContent = state.rays;
-    });
 
-    document.getElementById('dilationSlider').addEventListener('input', (e) => {
-      state.dilation = parseFloat(e.target.value);
-    });
-
-    document.getElementById('speedSlider').addEventListener('input', (e) => {
-      state.speed = parseFloat(e.target.value);
-    });
-
-    document.getElementById('paletteSelect').addEventListener('change', (e) => {
-      state.palette = e.target.value;
-    });
-
-    const toggleGazeBtn = document.getElementById('toggleGaze');
-    toggleGazeBtn.addEventListener('click', () => {
-      state.gazeTracking = !state.gazeTracking;
-      toggleGazeBtn.textContent = `Gaze Tracking: ${state.gazeTracking ? 'ON' : 'OFF'}`;
-      if (!state.gazeTracking) {
-        state.targetLook = { x: 0, y: 0 };
-      }
-    });
-
-    document.getElementById('randomizeBtn').addEventListener('click', () => {
-      const keys = Object.keys(palettes);
-      state.palette = keys[Math.floor(Math.random() * keys.length)];
-      document.getElementById('paletteSelect').value = state.palette;
-      state.rays = [16, 24, 32, 40, 48, 64][Math.floor(Math.random() * 6)];
-      document.getElementById('raySlider').value = state.rays;
-      document.getElementById('rayVal').textContent = state.rays;
-      triggerBlink();
-    });
 
     // Mouse Tracking
     canvas.addEventListener('mousemove', (e) => {
@@ -762,17 +695,16 @@
     render();
 
     // Copy Source Code
-    const btnCopy = document.getElementById('btnCopyCode');
+    const btnCopy = document.getElementById('btnCopy');
     btnCopy.addEventListener('click', () => {
-      // Fetch or serialize the clean self-contained source code of this page
       const src = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
       navigator.clipboard.writeText(src).then(() => {
         btnCopy.textContent = '✓ Copied';
         btnCopy.classList.add('copied');
         setTimeout(() => {
-          btnCopy.textContent = 'Copy Code';
+          btnCopy.textContent = 'Copy';
           btnCopy.classList.remove('copied');
-        }, 2200);
+        }, 2000);
       });
     });
 
