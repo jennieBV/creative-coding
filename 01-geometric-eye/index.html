@@ -177,71 +177,74 @@
       opacity: 0.8;
     }
 
-    /* Top Navigation bar */
+    /* Minimalist Top Bar */
     .top-nav {
       position: absolute;
-      top: 14px;
-      left: 20px;
-      right: 20px;
+      top: 18px;
+      left: 24px;
+      right: 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       z-index: 10;
     }
 
-    .nav-links a {
+    .nav-back {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 0.8rem;
-      padding: 6px 12px;
+      font-size: 1.2rem;
+      padding: 6px 14px;
       border-radius: 8px;
-      border: 1px solid transparent;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .nav-back:hover {
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .copy-btn {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-family: inherit;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
       transition: all 0.2s ease;
     }
 
-    .nav-links a:hover {
+    .copy-btn:hover {
       color: var(--text-main);
-      border-color: var(--border-color);
-      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.08);
     }
 
-    .nav-links a.active {
-      color: var(--accent-cyan);
-      border-color: rgba(0, 240, 255, 0.3);
-      background: rgba(0, 240, 255, 0.1);
-    }
-
-    .badge {
-      font-family: monospace;
-      font-size: 0.72rem;
-      padding: 4px 8px;
-      border-radius: 6px;
-      background: rgba(0, 240, 255, 0.15);
-      border: 1px solid rgba(0, 240, 255, 0.4);
-      color: #00f0ff;
-      letter-spacing: 0.08em;
+    .copy-btn.copied {
+      color: #7ee787;
+      border-color: #7ee787;
+      background: rgba(126, 231, 135, 0.12);
     }
   </style>
 </head>
 <body>
 
   <div class="top-nav">
-    <div class="nav-links">
-      <a href="../index.html" title="Return to Gallery Exhibition Hall">🏛️ Gallery Hub</a>
-      <a href="index.html" class="active">01 // Geometric Eye</a>
-      <a href="../02-terminal-heritage/index.html">02 // Cyber Heritage &rarr;</a>
-    </div>
-    <span class="badge" title="Press Left/Right arrows to flip pieces">KEY: &larr; / &rarr;</span>
+    <a href="../index.html" class="nav-back" title="Back">&larr;</a>
+    <button id="btnCopyCode" class="copy-btn">Copy Code</button>
   </div>
 
   <div class="glow-backdrop"></div>
 
   <div class="stage">
-    <header>
-      <h1>Geometric Eye</h1>
-      <p class="subtitle">Sacred Geometry &bull; Generative JavaScript Canvas</p>
-    </header>
-
     <div class="canvas-wrapper">
       <canvas id="eyeCanvas" width="600" height="500"></canvas>
     </div>
@@ -274,11 +277,9 @@
         </select>
       </div>
 
-      <button id="toggleGaze">Gaze Tracking: ON</button>
+      <button id="toggleGaze">Gaze: ON</button>
       <button id="randomizeBtn">Randomize</button>
     </div>
-
-    <p class="hint">Move your cursor over the canvas to direct its gaze &bull; Click to blink</p>
   </div>
 
   <script>
@@ -759,6 +760,21 @@
 
     // Launch Loop
     render();
+
+    // Copy Source Code
+    const btnCopy = document.getElementById('btnCopyCode');
+    btnCopy.addEventListener('click', () => {
+      // Fetch or serialize the clean self-contained source code of this page
+      const src = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      navigator.clipboard.writeText(src).then(() => {
+        btnCopy.textContent = '✓ Copied';
+        btnCopy.classList.add('copied');
+        setTimeout(() => {
+          btnCopy.textContent = 'Copy Code';
+          btnCopy.classList.remove('copied');
+        }, 2200);
+      });
+    });
 
     // Gallery Keyboard Navigation
     window.addEventListener('keydown', (e) => {
